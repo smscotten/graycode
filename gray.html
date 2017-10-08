@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name = "viewport" content = "user-scalable=no, width=device-width" />
+    <title>Generate Gray Code</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+    <script>
+
+      var splitList = [0, 1]
+      var bits = 1
+      var base = 2
+
+      $( document ).on( "mobileinit", function() {
+        $.mobile.loader.prototype.options.text = "Calculating";
+        $.mobile.loader.prototype.options.textVisible = true;
+        $.mobile.loader.prototype.options.theme = "b";
+        $.mobile.loader.prototype.options.html = "";
+      });
+
+      $(document).on( "pagecontainershow", function (event, ui) {
+
+        $('form#graycode input#bits_in_list').change( function(event) {
+          /*$.mobile.loading( "show", {
+            text: "Calculating",
+            textVisible: true,
+            theme: "b",
+            html: ""
+          })*/
+          //$.mobile.loading('show')
+          console.log("About to set 'Calculating' and 'Rendering' messages")
+          setCalcTimeMessage("Calculating…")
+          setRenderTimeMessage("Rendering…")
+          console.log("Just set 'Calculating' and 'Rendering' messages")
+
+          var newBits = $(this).val()
+          fontSize = 12 * (1 - (bits - 1) * .025)
+          $('#listarea').css('font-size', fontSize+'pt')
+          sliderColorRed = newBits < 6
+                           ? '66'
+                           : (newBits > 16
+                              ? 'ff'
+                              :(102 + (bits-6)*15).toString(16)) //e9 is 233
+          sliderColorGreen = bits < 10
+                             ? 'ff'
+                             : (newBits > 16
+                                ? '00'
+                                : (255 - (bits-10)*20).toString(16))
+
+          sliderColorBlue = newBits < 7
+                          ? '66'
+                          : ( newBits > 12
+                              ? '00'
+                              : (102 - (newBits-7)*19).toString(16) )
+          $('.ui-slider .ui-slider-track').css('background-color', '#'+sliderColorRed+sliderColorGreen+sliderColorBlue)
+          //$.when( redrawGrayCode(newBits, base) ).then( function( r ){
+          //  $.mobile.loading( "hide" )
+          //} );
+          redrawGrayCode(newBits, base)
+        })
+
+        $('form#graycode input[name=base]').change( function(event) {
+          console.log("About to set 'Rendering' message")
+          setRenderTimeMessage("Rendering…")
+          console.log("Just set 'Rendering' message")
+          newBase = $(this).val()
+          redrawGrayCode(bits, newBase)
+        })
+
+        $('form#graycode input[name=delimiter]').change( function(event) {
+          console.log("About to set 'Rendering' message")
+          setRenderTimeMessage("Rendering…")
+          console.log("Just set 'Rendering' message")
+          redrawGrayCode(bits, base)
+        })
+
+        $('form#graycode select#multiline').change( function(event) {
+          $("p#renderTime").empty().html("Rendering…")
+          redrawGrayCode(bits, base)
+        })
+
+        var redrawGrayCode = function(newBits, newBase) {
+          var renderStartTime = Date.now()
+          base = newBase
+          if (newBits !== bits) {
+            bits = newBits
+            var topOfList = Math.pow(2, bits)
+            var valueArray = []
+            for (i = 0; i < topOfList; i++) {
+              valueArray.push(i)
+            }
+            var calcStartTime = Date.now()
+            splitList = makeGrayCode(valueArray)
+            var calcEndTime = Date.now()
+            console.log("About to set 'Calculated' message")
+            setCalcTimeMessage("Calculated in "+formatElapsed(calcStartTime, calcEndTime))
+            console.log("Just set 'Calculated' message")
+          }
+          var splitListInBase = splitList.map(function( n ) {
+            var numberOfDigits = (topOfList - 1).toString(base).length
+            var baseValue = n.toString(base)
+            while (baseValue.length < numberOfDigits) {
+              baseValue = "0" + baseValue;
+            }
+            return( baseValue )
+          })
+          var delimiter = $('#delimiter').val()
+                        + ($('select#multiline').val() === 'on' ? "\n" : '')
+          var splitListsString = splitListInBase.join(delimiter)
+          $('#listarea').val(splitListsString)
+          $('#listarea').keyup()
+          var renderEndTime = Date.now()
+          console.log("About to set 'Rendered' message")
+          setRenderTimeMessage("Rendered in "+formatElapsed(renderStartTime, renderEndTime))
+          console.log("Just set 'Rendered' message")
+          //return "finished"
+        }
+        var setCalcTimeMessage = function( msg ){
+          console.log("setCalcTimeMessage() called")
+          $("p#calcTime").empty().html(msg)
+        }
+        var setRenderTimeMessage = function( msg ){
+          console.log("setRenderTimeMessage() called")
+          $("p#renderTime").empty().html(msg)
+        }
+      })
+
+      var splitTopAndBottom = function(wholeList) {
+        var items = wholeList.length / 2
+        wholeList.sort(numericOrder)
+        var bottomList = wholeList.slice(0,(items))
+        var topList = wholeList.slice((items))
+        var sendBack = { 'bottomList': bottomList, 'topList': topList }
+        return(sendBack)
+      }
+
+      var makeGrayCode = function(listOfNumbers, isRight) {
+        var startTime = Date.now()
+        var splitLists = splitTopAndBottom(listOfNumbers)
+        var bottomList = splitLists.bottomList
+        var topList = splitLists.topList
+        var leftList = bottomList.length > 1
+                     ? makeGrayCode((isRight ? topList : bottomList), false)
+                     : (isRight ? topList : bottomList)
+        var rightList = bottomList.length > 1
+                      ? makeGrayCode(( isRight ? bottomList : topList), true)
+                      : (isRight ? bottomList : topList)
+        var newList = leftList.concat(rightList)
+        return(newList)
+      }
+
+      var numericOrder = function(a, b) {
+        return a - b
+      }
+
+      var formatElapsed = function(start, finish) {
+        var elapsed = finish - start
+        return ( elapsed > 999
+                 ? (elapsed / 1000).toPrecision(4) + " seconds"
+                 : elapsed + " ms" )
+      }
+
+    </script>
+    <style type="text/css">
+      textarea#listarea {
+        font-family: "Source Code Pro", monospace;
+        font-size: 12pt;
+      }
+
+      .ui-slider .ui-slider-track {
+        background-color: #66ff66;
+      }
+    </style>
+
+  </head>
+  <body>
+    <div data-role="page" id="pricepage" class="ui-responsive-panel">
+      <div data-role="header" class="jqm-header" data-theme="b" data-position="fixed" data-tap-toggle="false">
+          <h1>Generate a Gray Code Sequence</h1>
+          <a href="#homePopup" data-rel="popup" data-position-to="window" data-transition="pop" data-icon="home" data-iconpos="notext">Home</a>
+          <a href="https://en.wikipedia.org/wiki/Gray_code" data-icon="info">WTF is a Gray Code?</a>
+      </div>
+      <div role="main" class="ui-content jqm-content">
+        <form id="graycode">
+          <div class="ui-grid-a">
+            <div class="ui-block-a">
+              <div class="ui-field-contain">
+                <label for="bits_in_list">Bits:</label>
+                <input type="range" name="bits_in_list" id="bits_in_list" value="1" min="1" max="24" />
+              </div>
+            </div>
+            <div class="ui-block-b">
+              <div class="ui-field-contain">
+                <fieldset data-role="controlgroup" data-type="horizontal">
+                  <legend>Display:</legend>
+                  <input type="radio" name="base" id="base-binary" value="2" checked="checked" />
+                  <label for="base-binary">Binary</label>
+                  <input type="radio" name="base" id="base-octal" value="8" />
+                  <label for="base-octal">Octal</label>
+                  <input type="radio" name="base" id="base-decimal" value="10" />
+                  <label for="base-decimal">Decimal</label>
+                  <input type="radio" name="base" id="base-hex" value="16" />
+                  <label for="base-hex">Hex</label>
+                </fieldset>
+              </div>
+            </div>
+          </div>
+          <div class="ui-grid-b">
+            <div class="ui-block-a" style="padding-right: 10px;">
+              <div class="ui-field-contain">
+                <label for="delimiter">Delimiter:</label>
+                <input type="text" name="delimiter" id="delimiter" value=", " />
+              </div>
+            </div>
+            <div class="ui-block-b">
+              <div class="ui-field-contain">
+                <label for="multiline">Separate lines?</label>
+                <select name="multiline" id="multiline" data-role="slider">
+                  <option value="off">No</option>
+                  <option value="on">Yes</option>
+                </select>
+              </div>
+            </div>
+            <div class="ui-block-c">
+              <p id="calcTime"></p>
+              <p id="renderTime"></p>
+            </div>
+          </div>
+          <label for="listarea">Gray Code:</label>
+          <textarea cols="60" rows="20" name="listarea" id="listarea" data-enhanced="true" class="ui-input-text ui-shadow-inset ui-body-inherit ui-corner-all">0, 1</textarea>
+        </form>
+
+      </div><!-- /main -->
+      <div data-role="footer" class="ui-footer jqm-footer ui-responsive" style="overflow:hidden;" data-theme="b" data-position="fixed" data-tap-toggle="false">
+        <!--a href="" class="ui-btn-left ui-btn ui-btn-inline ui-corner-all ui-btn-icon-left ui-icon-arrow-l">
+          Footer Link 1
+        </a-->
+        <h4>Brought to you by the Aluminium Haberdashery</h4>
+        <!--a href="" class="ui-btn-right ui-btn ui-btn-inline ui-corner-all ui-btn-icon-right ui-icon-arrow-r">
+          Footer Link 2
+        </a-->
+      </div><!-- /footer -->
+      <div data-role="popup" id="homePopup" data-overlay-theme="b" data-theme="a" data-dismissible="true" style="max-width:400px;">
+        <div data-role="header" data-theme="b">
+          <h1>Home?</h1>
+        </div>
+        <div role="main" class="ui-content">
+          <h3 class="ui-title">Remember, many sad little websites don't have a home</h3>
+          <p>Please give generously.</p>
+          <a href="#" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-a" data-rel="back">Donate</a>
+          <a href="#" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-a" data-rel="back" data-transition="flow">No, thanks</a>
+        </div>
+      </div><!-- /popup -->
+    </div><!-- /page -->
+  </body>
+</html>
