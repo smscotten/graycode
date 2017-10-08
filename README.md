@@ -7,3 +7,14 @@ The intent (other than the mental exercise of determining the gray code sequence
 This calculation could certainly be done more rapidly on a server, perhaps even by generating the sequence with a compiled C program. However, if that server were to get multiple concurrent requests the CPU load could become prohibitive. Having the client's machine run the math is good "division of labor".
 
 Furthermore, the binary sequence of the 22-bit gray code sequences is around 100MB of text. Sending that across a WAN especially on residential DSL bandwidth would be prohibitive even if the server was not bottlenecked. Even gzip compression (which does an excellent job of compressing this data) reduces the amount that would be transferred to about 10MB of text.
+
+## How to use
+
+1. Load the page into a javascript-enabled browser
+2. Fiddle with settings (see Features)
+
+## Features
+
+* Display in binary, octal, decimal or hex
+* Display one-per line or all on one line
+* Specify delimiter (the text in between the values)
