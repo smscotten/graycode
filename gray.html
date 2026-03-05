@@ -89,18 +89,14 @@
           base = newBase
           if (newBits !== bits) {
             bits = newBits
-            var topOfList = Math.pow(2, bits)
-            var valueArray = []
-            for (i = 0; i < topOfList; i++) {
-              valueArray.push(i)
-            }
             var calcStartTime = Date.now()
-            splitList = makeGrayCode(valueArray)
+            splitList = makeGrayCode(bits)
             var calcEndTime = Date.now()
             console.log("About to set 'Calculated' message")
             setCalcTimeMessage("Calculated in "+formatElapsed(calcStartTime, calcEndTime))
             console.log("Just set 'Calculated' message")
           }
+          var topOfList = 1 << bits
           var splitListInBase = splitList.map(function( n ) {
             var numberOfDigits = (topOfList - 1).toString(base).length
             var baseValue = n.toString(base)
@@ -130,32 +126,13 @@
         }
       })
 
-      var splitTopAndBottom = function(wholeList) {
-        var items = wholeList.length / 2
-        wholeList.sort(numericOrder)
-        var bottomList = wholeList.slice(0,(items))
-        var topList = wholeList.slice((items))
-        var sendBack = { 'bottomList': bottomList, 'topList': topList }
-        return(sendBack)
-      }
-
-      var makeGrayCode = function(listOfNumbers, isRight) {
-        var startTime = Date.now()
-        var splitLists = splitTopAndBottom(listOfNumbers)
-        var bottomList = splitLists.bottomList
-        var topList = splitLists.topList
-        var leftList = bottomList.length > 1
-                     ? makeGrayCode((isRight ? topList : bottomList), false)
-                     : (isRight ? topList : bottomList)
-        var rightList = bottomList.length > 1
-                      ? makeGrayCode(( isRight ? bottomList : topList), true)
-                      : (isRight ? bottomList : topList)
-        var newList = leftList.concat(rightList)
-        return(newList)
-      }
-
-      var numericOrder = function(a, b) {
-        return a - b
+      var makeGrayCode = function(bits) {
+        var length = 1 << bits
+        var result = new Uint32Array(length)
+        for (var i = 0; i < length; i++) {
+          result[i] = i ^ (i >> 1)
+        }
+        return result
       }
 
       var formatElapsed = function(start, finish) {
